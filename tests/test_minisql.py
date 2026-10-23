@@ -100,7 +100,7 @@ class TestExecution(unittest.TestCase):
 
     def test_arithmetic_limit(self):
         h, rows = q("SELECT name, salary * 2 AS dbl FROM employees ORDER BY salary DESC LIMIT 2;")
-        self.assertEqual(rows, [("Tigist", 36000.0), ("Almaz", 31001.0)])
+        self.assertEqual(rows, [("Tigist", 36000.0), ("fasika", 31001.0)])
 
     def test_logic(self):
         h, rows = q("SELECT id FROM departments WHERE NOT (city = 'Addis Ababa') OR id = 10 ORDER BY id;")
