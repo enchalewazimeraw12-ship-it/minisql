@@ -105,7 +105,10 @@ class CodeGen:
             cur = self.emit("LIMIT", [cur.dest], n=s.limit)
         self.emit("EMIT", [cur.dest])
         return self.ops
+    #  endale ena yesuf
 
+
+# eziga yetelemamedi
 
 def generate(select):
     return CodeGen().generate(select)

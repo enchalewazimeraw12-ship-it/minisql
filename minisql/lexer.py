@@ -2,10 +2,10 @@
 import re
 from dataclasses import dataclass
 from .errors import LexError
-
-KEYWORDS = {"SELECT", "FROM", "WHERE", "JOIN", "INNER", "LEFT", "ON", "AS", "AND", "OR",
-            "NOT", "ORDER", "BY", "ASC", "DESC", "LIMIT"}
-
+KEYWORDS = {
+    "SELECT", "FROM", "WHERE", "JOIN", "INNER", "LEFT", "ON",
+    "NOT", "ORDER", "BY", "ASC", "DESC", "LIMIT"
+}         
 TOKEN_SPEC = [
     ("NL", r"\n"),
     ("WS", r"[ \t\r]+"),
