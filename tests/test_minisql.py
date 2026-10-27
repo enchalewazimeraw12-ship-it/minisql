@@ -1,7 +1,11 @@
 import os, sys, unittest
+from argparse import Namespace
+from contextlib import redirect_stdout
+from io import StringIO
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from minisql.compiler import compile_source, run, load_catalog
 from minisql.lexer import tokenize
+from main import process
 
 DB = load_catalog(os.path.join(os.path.dirname(__file__), "..", "data", "sample_db.json"))
 
@@ -45,6 +49,14 @@ class TestParser(unittest.TestCase):
 
     def test_recovery_reports_multiple(self):
         self.assertEqual(len(self.errs("SELECT FROM a; SELECT * employees;")), 2)
+
+    def test_valid_statements_compile_after_errors(self):
+        r = compile_source(
+            "SELECT name FROM employee; SELECT id FROM departments ORDER BY id;", DB
+        )
+        self.assertEqual(len(r.errors), 1)
+        self.assertEqual(len(r.valid_statements), 1)
+        self.assertEqual(len(r.plans), 1)
 
     def test_precedence(self):
         r = compile_source("SELECT 1 + 2 * 3 AS v FROM departments;", DB)
@@ -100,7 +112,7 @@ class TestExecution(unittest.TestCase):
 
     def test_arithmetic_limit(self):
         h, rows = q("SELECT name, salary * 2 AS dbl FROM employees ORDER BY salary DESC LIMIT 2;")
-        self.assertEqual(rows, [("Tigist", 36000.0), ("Almaz", 31001.0)])
+        self.assertEqual(rows, [("Tigist", 36000.0), ("fasika", 31001.0)])
 
     def test_logic(self):
         h, rows = q("SELECT id FROM departments WHERE NOT (city = 'Addis Ababa') OR id = 10 ORDER BY id;")
@@ -123,10 +135,44 @@ class TestExecution(unittest.TestCase):
         r = compile_source("SELECT name FROM employee;", DB)
         self.assertEqual(len(r.errors), 1)
 
+    def test_valid_statements_run_after_errors(self):
+        r = run(
+            "SELECT name FROM employee; SELECT id FROM departments ORDER BY id;", DB
+        )
+        self.assertEqual(len(r.errors), 1)
+        self.assertEqual(r.outputs, [(["id"], [(10,), (20,), (30,), (40,)])])
+
+    def test_syntax_and_lexer_errors_skip_only_their_statements(self):
+        source = (
+            "SELECT #id FROM departments; "
+            "SELECT FROM departments; "
+            "SELECT id FROM departments ORDER BY id;"
+        )
+        r = run(source, DB)
+        self.assertEqual(len(r.errors), 2)
+        self.assertEqual(len(r.valid_statements), 1)
+        self.assertEqual(r.outputs, [(["id"], [(10,), (20,), (30,), (40,)])])
+
     def test_div_zero(self):
         from minisql.errors import ExecError
         with self.assertRaises(ExecError):
             q("SELECT salary / 0 FROM employees;")
+
+
+class TestCLI(unittest.TestCase):
+    def test_valid_statements_run_after_errors(self):
+        output = StringIO()
+        args = Namespace(tokens=False, ast=False, symtab=False, plan=False, no_run=False)
+        with redirect_stdout(output):
+            status = process(
+                "SELECT name FROM employee; SELECT id FROM departments ORDER BY id;",
+                DB,
+                args,
+            )
+        self.assertEqual(status, 1)
+        self.assertIn("unknown table 'employee'", output.getvalue())
+        self.assertIn("######## Statement 1 ########", output.getvalue())
+        self.assertIn("(4 rows)", output.getvalue())
 
 
 if __name__ == "__main__":

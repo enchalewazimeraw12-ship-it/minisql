@@ -22,15 +22,14 @@ def process(src, catalog, args):
         print("== ERRORS ==")
         for e in res.errors:
             print("  ", e)
-        return 1
-    for i, s in enumerate(res.statements):
+    for i, s in enumerate(res.valid_statements):
         print(f"\n######## Statement {i + 1} ########")
         if args.ast:
             print("== AST (annotated with types) ==")
             print(dump_ast(s))
         if args.symtab:
             print("== SYMBOL TABLE ==")
-            print(res.symtabs[i].dump())
+            print(res.valid_symtabs[i].dump())
         if args.plan:
             print("== THREE-ADDRESS CODE / EXECUTION PLAN ==")
             print(format_plan(res.plans[i]))
@@ -38,7 +37,7 @@ def process(src, catalog, args):
             print("== RESULT ==")
             h, rows = execute(res.plans[i], catalog)
             print(format_table(h, rows))
-    return 0
+    return 1 if res.errors else 0
 
 
 def main():

@@ -47,6 +47,10 @@ Run a query directly:
 python main.py -e "SELECT name, salary FROM employees ORDER BY salary DESC LIMIT 3;"
 ```
 
+When a script contains invalid statements, MiniSQL reports their errors and skips
+them while continuing with valid statements. The command exits with a nonzero
+status if any errors were reported, even when valid statements produced results.
+
 Start the interactive shell:
 
 ```bash

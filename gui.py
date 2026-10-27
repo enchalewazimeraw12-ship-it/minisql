@@ -120,28 +120,32 @@ class MiniSQLApp:
         result = compile_source(source, self.catalog)
         if result.errors:
             self._show_errors(result.errors)
-            self.status.set(f"Found {len(result.errors)} error(s)")
-            self._show_message("Fix the reported errors, then run the query again.")
-            return
 
         try:
             outputs = [execute(plan, self.catalog) for plan in result.plans]
         except CompilerError as error:
-            self._show_errors([error])
+            self._show_errors(result.errors + [error])
             self.status.set("Query execution failed")
             self._show_message("The query could not be executed.")
             return
 
         if not outputs:
-            self.status.set("No statements to run")
-            self._show_message("Enter one or more SELECT statements ending with semicolons.")
+            if result.errors:
+                self.status.set(f"Found {len(result.errors)} error(s)")
+                self._show_message("No valid statements to run.")
+            else:
+                self.status.set("No statements to run")
+                self._show_message("Enter one or more SELECT statements ending with semicolons.")
             return
 
         row_count = 0
         for index, (header, rows) in enumerate(outputs, start=1):
             self._show_table(f"Result {index}", header, rows)
             row_count += len(rows)
-        self.status.set(f"Completed: {row_count} row(s) across {len(outputs)} statement(s)")
+        status = f"Completed: {row_count} row(s) across {len(outputs)} statement(s)"
+        if result.errors:
+            status += f"; found {len(result.errors)} error(s)"
+        self.status.set(status)
 
     def load_example(self):
         example = ROOT / "examples" / "valid.sql"
